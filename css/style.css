@@ -364,3 +364,8 @@ body[data-screen='spiel'] .topbar { display: none; }
 .how-demo .tp { font-weight: 700; }
 .yl { color: var(--yellow); }
 .gr { color: var(--green); }
+
+.node.next { box-shadow: 0 0 22px var(--c), 0 6px 0 rgba(0, 0, 0, 0.45); animation: node-pulse 2s ease-in-out infinite; }
+.node-next { display: inline-block; font-size: 0.62rem; color: #120f2b; background: var(--c); border-radius: 6px; padding: 0.2rem 0.45rem; margin-bottom: 0.25rem; }
+@keyframes node-pulse { 50% { box-shadow: 0 0 36px var(--c), 0 6px 0 rgba(0, 0, 0, 0.45); } }
+@media (prefers-reduced-motion: reduce) { .node.next { animation: none; } }

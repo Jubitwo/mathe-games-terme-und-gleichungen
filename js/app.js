@@ -60,21 +60,20 @@
   function map() {
     MA.keyTarget = null;
     const ws = ALL();
+    const nx = MA.nextMission(), neu = !S.data.games && !S.data.stories.length;
     app.innerHTML = `<section class="screen map">
       <h1 class="pixel h-title">WELTKARTE</h1>
-      ${(() => { const m = MA.nextMission(); const neu = !S.data.games && !S.data.stories.length; return `<button type="button" class="mission" data-w="${m.w.id}" data-m="${m.mode}" style="--c:${m.w.color}"><span class="mi-ic">${m.mode === 'boss' ? m.w.boss.icon : MA.MODES[m.mode].icon}</span><span class="mi-tx"><span class="pixel mi-h">${neu ? 'NEU HIER? STARTE HIER!' : 'DEINE NÄCHSTE MISSION'}</span><b>${m.w.id === 'final' ? 'Finale' : 'Welt ' + m.w.nr}: ${m.w.topic}</b><span>${m.label}${m.mode !== 'story' ? ' · Niveau 🤖 Auto' : ''}</span></span><span class="mi-go pixel">▶</span></button>`; })()}
-      <p class="h-sub">Oder tippe selbst eine Welt an – z. B. das Thema, das ihr gerade im Unterricht habt.</p>
+      <p class="h-sub">Die <b>leuchtende Welt</b> ist dein nächster Schritt. Du kannst aber jede Welt antippen – z. B. das Thema, das ihr gerade im Unterricht habt.</p>
       <div class="path">${ws.map((w, i) => {
         const st = starsOf(w.id), sum = st.reduce((a, b) => a + b, 0), boss = S.data.bosses.includes(w.id), story = S.data.stories.includes(w.id);
-        return `<a class="node ${i % 2 ? 'r' : 'l'} ${w.id === 'final' ? 'final' : ''}" href="#/w/${w.id}" style="--c:${w.color}">
+        const isNext = nx.w.id === w.id;
+        return `<a class="node ${i % 2 ? 'r' : 'l'} ${w.id === 'final' ? 'final' : ''} ${isNext ? 'next' : ''}" href="#/w/${w.id}" style="--c:${w.color}">
           <div class="node-ic">${w.icon}${boss ? '<span class="crown">👑</span>' : ''}</div>
-          <div class="node-tx"><div class="node-nr pixel">${w.id === 'final' ? 'FINALE' : 'WELT ' + w.nr}</div><div class="node-t">${w.title}</div><div class="node-s">${w.topic}</div>
+          <div class="node-tx">${isNext ? `<div class="node-next pixel">▶ ${neu ? 'HIER STARTEN' : 'WEITER: ' + nx.label}</div>` : ''}<div class="node-nr pixel">${w.id === 'final' ? 'FINALE' : 'WELT ' + w.nr}</div><div class="node-t">${w.title}</div><div class="node-s">${w.topic}</div>
           <div class="node-m">${w.story ? `<span class="${story ? 'ok' : ''}">📖</span>` : ''}<span class="nst">${'★'.repeat(sum)}${'☆'.repeat(9 - sum)}</span></div></div></a>`;
       }).join('<div class="link"></div>')}</div>
       <div class="map-links"><a class="btn btn-ghost" href="#/spick">📒 Spickzettel</a><a class="btn btn-ghost" href="#/erfolge">🏆 Erfolge</a><a class="btn btn-ghost" href="#/info">👩‍🏫 Lehrkräfte</a></div>
     </section>`;
-    const mb = app.querySelector('.mission');
-    if (mb) mb.addEventListener('click', () => { const w = byId(mb.dataset.w); startGame(w, mb.dataset.m, mb.dataset.m === 'story' ? 1 : 0); });
     syncTop();
   }
 
@@ -88,8 +87,8 @@
     app.innerHTML = `<section class="screen world" style="--c:${w.color}">
       <div class="crumbs"><a href="#/karte" class="btn btn-ghost">◀ Karte</a></div>
       <div class="w-head"><div class="w-ic">${w.icon}</div><div><div class="pixel w-nr">${isFinal ? 'FINALE' : 'WELT ' + w.nr}</div><h1 class="w-title">${w.title}</h1><div class="w-topic">${w.topic}</div></div></div>
-      ${isFinal ? '<div class="panel finfo">🤖 Im Rückspiegel-Turm kommen Aufgaben aus <b>allen 7 Welten</b> – wie ein Test zum Kapitelende. Schaffst du den Mega-Robo?</div>' : `<details class="panel merke-panel" ${S.data.stories.includes(w.id) ? '' : 'open'}><summary><span class="pixel">📒 MERKE</span><span class="sum-hint">antippen</span></summary>${MA.merkeHTML(w)}</details>`}
       ${rec ? `<button type="button" class="mission small" data-m="${rec.mode}" style="--c:${w.color}"><span class="mi-ic">${rec.mode === 'boss' ? w.boss.icon : MA.MODES[rec.mode].icon}</span><span class="mi-tx"><span class="pixel mi-h">EMPFOHLEN</span><b>${rec.label}</b><span>${rec.mode === 'story' ? 'Erst verstehen, dann üben.' : rec.mode === 'training' ? 'Niveau passt sich automatisch an.' : 'Zeig, was du kannst!'}</span></span><span class="mi-go pixel">▶</span></button>` : ''}
+      ${isFinal ? '<div class="panel finfo">🤖 Im Rückspiegel-Turm kommen Aufgaben aus <b>allen 7 Welten</b> – wie ein Test zum Kapitelende. Schaffst du den Mega-Robo?</div>' : `<details class="panel merke-panel" ${S.data.stories.includes(w.id) ? '' : 'open'}><summary><span class="pixel">📒 MERKE</span><span class="sum-hint">antippen</span></summary>${MA.merkeHTML(w)}</details>`}
       <div class="panel"><div class="pixel ph">1 · WIE SCHWER?</div>
         <div class="levels four">${[0, 1, 2, 3].map((l) => `<button type="button" class="lvl" data-l="${l}"><span class="lvl-stars">${MA.LEVELS[l].s}</span><span class="lvl-n">${l === 0 ? 'Auto' : MA.LEVELS[l].word}</span><span class="lvl-got">${l === 0 ? 'passt sich an' : MA.starStr(S.stars(w.id, l))}</span></button>`).join('')}</div>
         <div class="lvl-info">${level === 0 ? '🤖 <b>Auto:</b> Du startest leicht. Schaffst du 3 Aufgaben hintereinander, wird es schwerer – bei Problemen wieder leichter.' : 'Du kannst die Stufe auch während des Spiels oben über die Sterne wechseln.'}</div></div>
@@ -170,7 +169,7 @@
         <li><b>🪜 Schritt für Schritt</b> (Gleichungen, Bruchgleichungen, Formeln): Jeder Umformungsschritt wird einzeln gewählt und in den Rechenweg geschrieben.</li>
         <li><b>⚡ Blitz</b> und <b>⚔️ Boss-Kampf</b> für Festigung und Motivation.</li>
         <li><b>Niveaus:</b> ★ leicht (G) · ★★ mittel (M) · ★★★ schwer (E) – z. B. (x + 4)² auf G, (4 − 2x)² auf M, (2a + 3b)² auf E. Standard ist <b>🤖 Auto</b>: Start auf G, nach 3 Treffern in Folge eine Stufe höher, nach 2 Fehlschlägen eine Stufe tiefer. Im Spiel lässt sich die Stufe jederzeit über die Sterne oben wechseln.</li>
-        <li><b>Einstieg:</b> Auf der Weltkarte zeigt „Deine nächste Mission“ den empfohlenen nächsten Schritt (Lern-Story → Training → Boss).</li>
+        <li><b>Einstieg:</b> Auf der Weltkarte leuchtet die Welt mit dem empfohlenen nächsten Schritt („▶ Hier starten / Hier weiter“, Reihenfolge Lern-Story → Training → Boss). Auf der Welt-Seite startet der Knopf „Empfohlen“ genau diesen Schritt.</li>
         <li>Terme werden über <b>Lückenkästchen</b> eingegeben (z. B. □x² □x □). Typische Fehler wie fehlendes 2ab werden erkannt und erklärt.</li></ul></div>
       <div class="panel"><div class="pixel ph">DATENSCHUTZ</div><p>Kein Login, kein Server, keine Cookies, keine externen Dienste. Der Fortschritt bleibt nur auf dem eigenen Handy.</p>
         <button type="button" class="btn btn-alt btn-reset">🗑 Fortschritt auf diesem Gerät löschen</button></div></section>`;
