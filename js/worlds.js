@@ -403,17 +403,19 @@
         }
         wrongs = [{ h: `${lin(A, m)} = ${lin(C, D)}`, msg: `Auch die ${fmt(m)} in der Klammer mit ${k} multiplizieren!` }, `${lin(A, -Bc)} = ${lin(C, D)}`];
       } else if (l === 2) {
-        let k, j; do { k = ri(2, 6); j = ri(1, 5); } while (k === j);
+        let k, j; do { k = ri(2, 6); j = ri(2, 5); } while (k === j);
         const m = rnz(-6, 6), n = rnz(-6, 6); x = rnz(-8, 8);
         if (U.chance(0.5)) {
           const e = k * (x + m) - j * (x + n);
           orig = `${k} · ${br(1, m)} − ${j} · ${br(1, n)} = ${fmt(e)}`; A = k - j; Bc = k * m - j * n; C = 0; D = e;
           wrongs = [{ h: `${lin(A, k * m + j * n)} = ${fmt(e)}`, msg: `Das Minus vor ${j} gilt auch für die Zahl in der Klammer: −${j} · ${par(n)} = ${fmt(-j * n)}` }, `${lin(k + j, k * m - j * n)} = ${fmt(e)}`];
+          if (x === 0) return this.gen(l, stepMode);
         } else {
           const e = k * (x + m) - j * (x + n);
           orig = `${k} · ${br(1, m)} = ${j} · ${br(1, n)}${e ? ` ${e < 0 ? '−' : '+'} ${Math.abs(e)}` : ''}`;
           A = k; Bc = k * m; C = j; D = j * n + e;
           wrongs = [{ h: `${lin(A, m)} = ${lin(C, n + e)}`, msg: 'Beim Auflösen jedes Glied der Klammer multiplizieren!' }, `${lin(A, Bc)} = ${lin(C, D + 2 * j * n)}`];
+          if (k * x + m === j * x + n + e) return this.gen(l, stepMode);
         }
       } else {
         const kk = ri(0, 2);
@@ -492,7 +494,7 @@
         let a, b; do { a = ri(2, 6); b = ri(2, 6); } while (a === b);
         const p = rnz(-6, 6); let x; do x = rnz(-9, 12); while ((b * (x + p)) % a !== 0);
         const q = (b * (x + p)) / a - x;
-        if (Math.abs(q) > 15 || q === 0) return this.gen(l, stepMode);
+        if (Math.abs(q) > 15 || q === 0 || q === p) return this.gen(l, stepMode);
         const L = U.lcm(a, b);
         return mk(`${F(lin(1, p), a)} = ${F(lin(1, q), b)}`, x, L, `${L / a} · ${br(1, p)} = ${L / b} · ${br(1, q)}`, [{ h: `${br(1, p)} = ${br(1, q)}`, msg: 'Die Nenner fallen nur weg, wenn du mit dem Hauptnenner multiplizierst.' }], [a * b !== L ? a * b : null, a + b]);
       }
@@ -504,7 +506,7 @@
       let a, b; do { a = ri(2, 6); b = ri(2, 8); } while (a === b);
       const p = ri(1, 6); let x; do x = rnz(-8, 12); while ((b * (x - p)) % a !== 0 || x === p);
       const q = (b * (x - p)) / a - x;
-      if (q === 0 || Math.abs(q) > 15 || x + q === 0 || q === -p) return this.gen(l, stepMode);
+      if (q === 0 || Math.abs(q) > 15 || x + q === 0 || q === -p || (a - b) * x === -p - q || a * (x - p) === b * (x + q)) return this.gen(l, stepMode);
       return mk(`${F(a, lin(1, -p))} = ${F(b, lin(1, q))}`, x, null, `${a} · ${br(1, q)} = ${b} · ${br(1, -p)}`, [{ h: `${a} · ${br(1, -p)} = ${b} · ${br(1, q)}`, msg: 'Über Kreuz: Zähler links mal Nenner RECHTS.' }, { h: `${lin(a, q)} = ${lin(b, -p)}`, msg: 'Die Klammern sind wichtig: Der Zähler wird mit dem GANZEN Nenner multipliziert.' }], null, true, p);
 
       function mk(eq, x, L, after, wrongAfter, wrongL, cross, forbidden) {
