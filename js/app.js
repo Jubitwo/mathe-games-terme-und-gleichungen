@@ -62,7 +62,8 @@
     const ws = ALL();
     app.innerHTML = `<section class="screen map">
       <h1 class="pixel h-title">WELTKARTE</h1>
-      <p class="h-sub">Tippe auf eine Welt. Empfehlung: von oben nach unten – Lern-Story ➜ Training ➜ Boss.</p>
+      ${(() => { const m = MA.nextMission(); const neu = !S.data.games && !S.data.stories.length; return `<button type="button" class="mission" data-w="${m.w.id}" data-m="${m.mode}" style="--c:${m.w.color}"><span class="mi-ic">${m.mode === 'boss' ? m.w.boss.icon : MA.MODES[m.mode].icon}</span><span class="mi-tx"><span class="pixel mi-h">${neu ? 'NEU HIER? STARTE HIER!' : 'DEINE NÄCHSTE MISSION'}</span><b>${m.w.id === 'final' ? 'Finale' : 'Welt ' + m.w.nr}: ${m.w.topic}</b><span>${m.label}${m.mode !== 'story' ? ' · Niveau 🤖 Auto' : ''}</span></span><span class="mi-go pixel">▶</span></button>`; })()}
+      <p class="h-sub">Oder tippe selbst eine Welt an – z. B. das Thema, das ihr gerade im Unterricht habt.</p>
       <div class="path">${ws.map((w, i) => {
         const st = starsOf(w.id), sum = st.reduce((a, b) => a + b, 0), boss = S.data.bosses.includes(w.id), story = S.data.stories.includes(w.id);
         return `<a class="node ${i % 2 ? 'r' : 'l'} ${w.id === 'final' ? 'final' : ''}" href="#/w/${w.id}" style="--c:${w.color}">
@@ -72,28 +73,38 @@
       }).join('<div class="link"></div>')}</div>
       <div class="map-links"><a class="btn btn-ghost" href="#/spick">📒 Spickzettel</a><a class="btn btn-ghost" href="#/erfolge">🏆 Erfolge</a><a class="btn btn-ghost" href="#/info">👩‍🏫 Lehrkräfte</a></div>
     </section>`;
+    const mb = app.querySelector('.mission');
+    if (mb) mb.addEventListener('click', () => { const w = byId(mb.dataset.w); startGame(w, mb.dataset.m, mb.dataset.m === 'story' ? 1 : 0); });
     syncTop();
   }
 
   /* ---------- Welt ---------- */
   function world(w) {
     MA.keyTarget = null;
-    let level = S.data.level || 1;
+    let level = S.data.level === undefined ? 0 : S.data.level;
+    const rec = MA.missionFor(w);
     const isFinal = w.id === 'final';
     const modes = isFinal ? ['training', 'blitz', 'boss'] : ['story', 'training'].concat(w.hasSteps ? ['schritt'] : []).concat(['blitz', 'boss']);
     app.innerHTML = `<section class="screen world" style="--c:${w.color}">
       <div class="crumbs"><a href="#/karte" class="btn btn-ghost">◀ Karte</a></div>
       <div class="w-head"><div class="w-ic">${w.icon}</div><div><div class="pixel w-nr">${isFinal ? 'FINALE' : 'WELT ' + w.nr}</div><h1 class="w-title">${w.title}</h1><div class="w-topic">${w.topic}</div></div></div>
       ${isFinal ? '<div class="panel finfo">🤖 Im Rückspiegel-Turm kommen Aufgaben aus <b>allen 7 Welten</b> – wie ein Test zum Kapitelende. Schaffst du den Mega-Robo?</div>' : `<details class="panel merke-panel" ${S.data.stories.includes(w.id) ? '' : 'open'}><summary><span class="pixel">📒 MERKE</span><span class="sum-hint">antippen</span></summary>${MA.merkeHTML(w)}</details>`}
-      <div class="panel"><div class="pixel ph">1 · NIVEAU WÄHLEN</div>
-        <div class="levels">${[1, 2, 3].map((l) => `<button type="button" class="lvl" data-l="${l}"><span class="lvl-stars">${MA.LEVELS[l].s}</span><span class="lvl-n">${MA.LEVELS[l].n}</span><span class="lvl-got">${MA.starStr(S.stars(w.id, l))}</span></button>`).join('')}</div></div>
+      ${rec ? `<button type="button" class="mission small" data-m="${rec.mode}" style="--c:${w.color}"><span class="mi-ic">${rec.mode === 'boss' ? w.boss.icon : MA.MODES[rec.mode].icon}</span><span class="mi-tx"><span class="pixel mi-h">EMPFOHLEN</span><b>${rec.label}</b><span>${rec.mode === 'story' ? 'Erst verstehen, dann üben.' : rec.mode === 'training' ? 'Niveau passt sich automatisch an.' : 'Zeig, was du kannst!'}</span></span><span class="mi-go pixel">▶</span></button>` : ''}
+      <div class="panel"><div class="pixel ph">1 · WIE SCHWER?</div>
+        <div class="levels four">${[0, 1, 2, 3].map((l) => `<button type="button" class="lvl" data-l="${l}"><span class="lvl-stars">${MA.LEVELS[l].s}</span><span class="lvl-n">${l === 0 ? 'Auto' : MA.LEVELS[l].word}</span><span class="lvl-got">${l === 0 ? 'passt sich an' : MA.starStr(S.stars(w.id, l))}</span></button>`).join('')}</div>
+        <div class="lvl-info">${level === 0 ? '🤖 <b>Auto:</b> Du startest leicht. Schaffst du 3 Aufgaben hintereinander, wird es schwerer – bei Problemen wieder leichter.' : 'Du kannst die Stufe auch während des Spiels oben über die Sterne wechseln.'}</div></div>
       <div class="panel"><div class="pixel ph">2 · SPIEL WÄHLEN</div><div class="modes">${modes.map((m) => {
         const M = MA.MODES[m], done = m === 'story' && S.data.stories.includes(w.id), bossDone = m === 'boss' && S.data.bosses.includes(w.id);
-        return `<button type="button" class="mcard ${m}" data-m="${m}"><span class="m-ic">${m === 'boss' ? w.boss.icon : M.icon}</span><span class="m-tx"><b>${m === 'boss' ? `Boss: ${w.boss.name}` : M.name}${done || bossDone ? ' ✔' : ''}</b><small>${m === 'story' && !done ? 'Starte hier, wenn das Thema neu ist!' : M.desc}</small></span></button>`;
+        return `<button type="button" class="mcard mc-${m}" data-m="${m}"><span class="m-ic">${m === 'boss' ? w.boss.icon : M.icon}</span><span class="m-tx"><b>${m === 'boss' ? `Boss: ${w.boss.name}` : M.name}${done || bossDone ? ' ✔' : ''}</b><small>${m === 'story' && !done ? 'Starte hier, wenn das Thema neu ist!' : M.desc}</small></span></button>`;
       }).join('')}</div></div>
     </section>`;
-    const paint = () => app.querySelectorAll('.lvl').forEach((b) => b.classList.toggle('on', +b.dataset.l === level));
+    const paint = () => {
+      app.querySelectorAll('.lvl').forEach((b) => b.classList.toggle('on', +b.dataset.l === level));
+      app.querySelector('.lvl-info').innerHTML = level === 0 ? '🤖 <b>Auto:</b> Du startest leicht. Schaffst du 3 Aufgaben hintereinander, wird es schwerer – bei Problemen wieder leichter.' : `${MA.LEVELS[level].s} <b>${MA.LEVELS[level].word}</b> (${MA.LEVELS[level].n}-Niveau). Du kannst die Stufe auch während des Spiels oben über die Sterne wechseln.`;
+    };
     app.querySelectorAll('.lvl').forEach((b) => b.addEventListener('click', () => { level = +b.dataset.l; S.data.level = level; S.save(); paint(); MA.Sound.click(); }));
+    const rb = app.querySelector('.mission.small');
+    if (rb) rb.addEventListener('click', () => startGame(w, rb.dataset.m, rb.dataset.m === 'training' ? 0 : level));
     app.querySelectorAll('.mcard').forEach((b) => b.addEventListener('click', () => startGame(w, b.dataset.m, level)));
     paint();
   }
@@ -109,10 +120,11 @@
     const p = pending, M = MA.MODES[p.mode];
     app.innerHTML = `<section class="screen game" data-mode="${p.mode}" style="--c:${p.w.color}">
       <div class="game-top"><button type="button" class="btn btn-ghost g-quit" aria-label="Beenden">✕</button>
-        <div class="g-title"><span>${p.w.icon}</span><span class="g-name">${p.mode === 'boss' ? p.w.boss.name : M.name}</span>${p.mode !== 'story' ? `<span class="g-lvl">${MA.LEVELS[p.level].s}</span>` : ''}</div>
+        <div class="g-title"><span>${p.w.icon}</span><span class="g-name">${p.mode === 'boss' ? p.w.boss.name : M.name}</span>${p.mode !== 'story' && p.level === 0 ? '<span class="g-lvl">🤖</span>' : ''}</div>
         ${p.w.id !== 'final' && p.mode !== 'story' ? '<button type="button" class="btn btn-ghost g-merke" aria-label="Merke">📒</button>' : ''}
       </div><div class="hud"></div><div class="game-body"></div></section>`;
     const hud = app.querySelector('.hud');
+    hud.addEventListener('click', (e) => { const b = e.target.closest('[data-setl]'); if (b && ctx.setLevel) { MA.Sound.click(); ctx.setLevel(+b.dataset.setl); } });
     const ctx = {
       world: p.w, level: p.level, el: app.querySelector('.game-body'),
       hud: (h) => (hud.innerHTML = h),
@@ -157,7 +169,8 @@
         <li><b>🎯 Training:</b> 10 Aufgaben, gestufte Tipps, „📒 Merke“, 2. Versuch und ausführlicher Lösungsweg. Sterne: 9 / 7 / 5 Punkte.</li>
         <li><b>🪜 Schritt für Schritt</b> (Gleichungen, Bruchgleichungen, Formeln): Jeder Umformungsschritt wird einzeln gewählt und in den Rechenweg geschrieben.</li>
         <li><b>⚡ Blitz</b> und <b>⚔️ Boss-Kampf</b> für Festigung und Motivation.</li>
-        <li><b>Niveaus:</b> ★ G · ★★ M · ★★★ E – z. B. (x + 4)² auf G, (4 − 2x)² auf M, (2a + 3b)² auf E.</li>
+        <li><b>Niveaus:</b> ★ leicht (G) · ★★ mittel (M) · ★★★ schwer (E) – z. B. (x + 4)² auf G, (4 − 2x)² auf M, (2a + 3b)² auf E. Standard ist <b>🤖 Auto</b>: Start auf G, nach 3 Treffern in Folge eine Stufe höher, nach 2 Fehlschlägen eine Stufe tiefer. Im Spiel lässt sich die Stufe jederzeit über die Sterne oben wechseln.</li>
+        <li><b>Einstieg:</b> Auf der Weltkarte zeigt „Deine nächste Mission“ den empfohlenen nächsten Schritt (Lern-Story → Training → Boss).</li>
         <li>Terme werden über <b>Lückenkästchen</b> eingegeben (z. B. □x² □x □). Typische Fehler wie fehlendes 2ab werden erkannt und erklärt.</li></ul></div>
       <div class="panel"><div class="pixel ph">DATENSCHUTZ</div><p>Kein Login, kein Server, keine Cookies, keine externen Dienste. Der Fortschritt bleibt nur auf dem eigenen Handy.</p>
         <button type="button" class="btn btn-alt btn-reset">🗑 Fortschritt auf diesem Gerät löschen</button></div></section>`;

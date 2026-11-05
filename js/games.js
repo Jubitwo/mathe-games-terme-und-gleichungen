@@ -23,6 +23,23 @@
     return s;
   };
 
+  /* Niveau-Steuerung: fest gewählt oder „Auto“ (passt sich an).
+     Im Spiel kann die Stufe jederzeit über die Sterne oben gewechselt werden. */
+  function levelState(c, opts) {
+    const st = { auto: c.level === 0, cur: c.level === 0 ? 1 : c.level, up: 0, down: 0, srcs: {} };
+    st.next = () => { const k = st.cur; st.srcs[k] = st.srcs[k] || MA.taskSource(c.world, k, opts); return st.srcs[k](); };
+    /* good = auf Anhieb richtig, bad = auch im 2. Versuch falsch */
+    st.report = (good, bad) => {
+      if (!st.auto) return;
+      if (good) { st.up++; st.down = 0; if (st.up >= 3 && st.cur < 3) { st.cur++; st.up = 0; MA.toast(`⬆️ Stark! Jetzt ${MA.LEVELS[st.cur].s} ${MA.LEVELS[st.cur].word}`, 1900); MA.Sound.boost(); } }
+      else if (bad) { st.down++; st.up = 0; if (st.down >= 2 && st.cur > 1) { st.cur--; st.down = 0; MA.toast('⬇️ Eine Stufe leichter – du schaffst das!', 1900); } }
+      else st.up = 0;
+    };
+    st.chips = () => `<span class="lvsw" title="Schwierigkeit wechseln">${[1, 2, 3].map((l) => `<button type="button" class="lvchip ${l === st.cur ? 'on' : ''}" data-setl="${l}" aria-label="Stufe ${MA.LEVELS[l].word}">${MA.LEVELS[l].s}</button>`).join('')}${st.auto ? '<span class="autotag">🤖 Auto</span>' : ''}</span>`;
+    c.setLevel = (l) => { st.auto = false; st.cur = l; MA.toast(`Ab der nächsten Aufgabe: ${MA.LEVELS[l].s} ${MA.LEVELS[l].word}`, 1500); c.refreshHud && c.refreshHud(); };
+    return st;
+  }
+
   MA.result = (c, o) => {
     const starHTML = o.stars !== undefined && o.stars !== null ? `<div class="res-stars">${[1, 2, 3].map((i) => `<span class="${i <= o.stars ? 'on' : ''}" style="animation-delay:${i * 0.25}s">★</span>`).join('')}</div>` : '';
     c.el.innerHTML = `<div class="result"><div class="res-emoji">${o.emoji || '🏆'}</div><h2 class="pixel res-title">${o.title}</h2>${starHTML}${o.record ? '<div class="res-record">NEUER REKORD!</div>' : ''}
@@ -91,12 +108,15 @@
      ======================================================= */
   G.training = {
     start(c) {
-      const next = MA.taskSource(c.world, c.level);
+      const lv = levelState(c);
+      const next = () => lv.next();
       const N = 10;
       let i = 0, val = 0, right = 0, firstTry = 0, score = 0, streak = 0, w = null, alive = true;
       const STREAK = { 3: '🔥 3er-Serie! Ab jetzt +5 Bonus', 5: '⚡ 5 in Folge – du bist on fire!', 8: '🚀 8 in Folge – unaufhaltbar!' };
-      const hud = () => c.hud(`<span><b>${Math.min(i, N)}</b>/${N}</span><span>⭐ <b>${score}</b></span><span class="streak ${streak >= 3 ? 'hot' : ''}">🔥 ${streak}</span>`);
+      const hud = () => c.hud(`<span><b>${Math.min(i, N)}</b>/${N}</span><span>⭐ <b>${score}</b></span><span class="streak ${streak >= 3 ? 'hot' : ''}">🔥 ${streak}</span>${lv.chips()}`);
+      c.refreshHud = hud;
       const finishTask = (t, r, attempt, hints, st) => {
+        lv.report(r.steps ? r.errors === 0 : r.ok && attempt === 1, r.steps ? r.errors >= 3 : !r.ok);
         let pts = 0, okish = r.ok;
         if (r.steps) { okish = r.errors <= 1; pts = Math.max(3, 12 - r.errors * 3); val += r.errors === 0 ? 1 : r.errors <= 2 ? 0.5 : 0; if (r.errors === 0) firstTry++; right++; }
         else if (r.ok) { right++; if (attempt === 1) { firstTry++; val += 1; } else { val += 0.5; MA.Store.badge('zweiter'); } pts = attempt === 2 ? 3 : Math.max(4, 10 - hints * 3); }
@@ -137,14 +157,14 @@
       const finish = () => {
         if (w) w.destroy();
         const stars = val >= 9 ? 3 : val >= 7 ? 2 : val >= 5 ? 1 : 0;
-        const rec = MA.Store.setStars(c.world.id, c.level, stars);
+        const rec = MA.Store.setStars(c.world.id, lv.cur, stars);
         if (firstTry === N) MA.Store.badge('perfect');
-        if (c.level === 3 && stars === 3) MA.Store.badge('eprofi');
+        if (lv.cur === 3 && stars === 3) MA.Store.badge('eprofi');
         MA.result(c, {
           title: ['WEITER ÜBEN!', 'GUT GEMACHT!', 'STARK!', 'MEGA!'][stars], emoji: ['💪', '🙂', '😎', '🏆'][stars], stars, record: rec && stars > 0,
-          lines: [`<b>${right} von ${N}</b> geschafft${right > firstTry ? ` (${right - firstTry} davon mit Hilfe)` : ''}`, `${score} Punkte`, stars < 3 ? `Für ${stars + 1} Sterne brauchst du ${[5, 7, 9][stars]} Punkte (ohne Hilfe = 1, mit Hilfe = ½).` : c.level < 3 ? 'Probier die nächste Stufe!' : 'Jetzt bist du bereit für den Boss! ⚔️'],
+          lines: [`<b>${right} von ${N}</b> geschafft${right > firstTry ? ` (${right - firstTry} davon mit Hilfe)` : ''}`, `Stufe am Ende: ${MA.LEVELS[lv.cur].s} ${MA.LEVELS[lv.cur].word}`, `${score} Punkte`, stars < 3 ? `Für ${stars + 1} Sterne brauchst du ${[5, 7, 9][stars]} Punkte (ohne Hilfe = 1, mit Hilfe = ½).` : lv.cur < 3 ? 'Probier die nächste Stufe!' : 'Jetzt bist du bereit für den Boss! ⚔️'],
           xp: score,
-          next: stars >= 2 && c.level < 3 ? { label: `▶ Weiter mit ${MA.LEVELS[c.level + 1].s}`, go: () => c.toMode('training', c.level + 1) } : stars === 3 ? { label: '⚔️ Zum Boss-Kampf', go: () => c.toMode('boss') } : { label: '📖 Lern-Story ansehen', go: () => c.toMode('story') },
+          next: stars >= 2 && lv.cur < 3 && !lv.auto ? { label: `▶ Weiter mit ${MA.LEVELS[lv.cur + 1].s} ${MA.LEVELS[lv.cur + 1].word}`, go: () => c.toMode('training', lv.cur + 1) } : stars >= 2 ? { label: '⚔️ Zum Boss-Kampf', go: () => c.toMode('boss') } : { label: '📖 Lern-Story ansehen', go: () => c.toMode('story') },
         });
       };
       step();
@@ -157,10 +177,12 @@
      ======================================================= */
   G.schritt = {
     start(c) {
-      const next = MA.taskSource(c.world, c.level, { steps: true });
+      const lv = levelState(c, { steps: true });
+      const next = () => lv.next();
       const N = 6;
       let i = 0, perfect = 0, errs = 0, w = null, alive = true;
-      const hud = () => c.hud(`<span>Aufgabe <b>${Math.min(i, N)}/${N}</b></span><span>✔ fehlerfrei <b>${perfect}</b></span>`);
+      const hud = () => c.hud(`<span>Aufgabe <b>${Math.min(i, N)}/${N}</b></span><span>✔ <b>${perfect}</b></span>${lv.chips()}`);
+      c.refreshHud = hud;
       const step = () => {
         if (!alive) return;
         if (w) w.destroy();
@@ -173,6 +195,7 @@
           worldId: c.world.id,
           onAnswer(r) {
             errs += r.errors || 0;
+            lv.report(!r.errors, (r.errors || 0) >= 3);
             if (r.ok && !r.errors) { perfect++; MA.Sound.ok(); }
             hud();
             MA.feedback(st, t, { ok: true }, { onNext: step, points: Math.max(3, 12 - (r.errors || 0) * 3), nextLabel: r.errors ? 'Geschafft – nächste Aufgabe ▶' : 'Perfekt – nächste Aufgabe ▶' });
@@ -195,13 +218,14 @@
      ======================================================= */
   G.blitz = {
     start(c) {
-      const src = MA.taskSource(c.world, c.level);
-      const next = () => flat(src());
+      const lv = levelState(c);
+      const next = () => flat(lv.next());
       const TOTAL = 60;
       let left = TOTAL, score = 0, streak = 0, wrong = 0, w = null, alive = true, running = false, iv = null;
       c.el.innerHTML = `<div class="blitz-bar"><div></div></div><div class="stage"></div>`;
       const bar = c.el.querySelector('.blitz-bar div'), st = c.el.querySelector('.stage');
-      const hud = () => c.hud(`<span>⏱ <b>${Math.max(0, Math.ceil(left))}</b> s</span><span>Treffer <b>${score}</b></span><span class="streak ${streak >= 3 ? 'hot' : ''}">🔥 ${streak}</span>`);
+      const hud = () => c.hud(`<span>⏱ <b>${Math.max(0, Math.ceil(left))}</b> s</span><span>Treffer <b>${score}</b></span><span class="streak ${streak >= 3 ? 'hot' : ''}">🔥 ${streak}</span>${lv.chips()}`);
+      c.refreshHud = hud;
       const countdown = (n) => {
         st.innerHTML = `<div class="countdown pixel">${n || 'LOS!'}</div>`; MA.Sound.tick();
         if (n > 0) setTimeout(() => alive && countdown(n - 1), 700); else setTimeout(() => { if (!alive) return; running = true; tick(); ask(); }, 500);
@@ -222,6 +246,7 @@
           worldId: c.world.id,
           onAnswer(r) {
             w.lock(); w.markChoice(r);
+            lv.report(r.ok, !r.ok);
             if (r.ok) { score++; streak++; MA.Sound.ok(); if (streak % 5 === 0) { left += 5; MA.toast('⏱ +5 Sekunden!', 1300); MA.Sound.boost(); } st.classList.add('flash-ok'); setTimeout(() => st.classList.remove('flash-ok'), 250); setTimeout(ask, 280); }
             else { streak = 0; wrong++; MA.Sound.bad(); MA.feedback(st, t, r, { onNext: ask, auto: 1800 }); }
             hud();
@@ -230,9 +255,9 @@
       };
       const finish = () => {
         running = false; alive = false; if (w) w.destroy();
-        const rec = MA.Store.setBest(c.world.id, c.level, 'blitz', score);
+        const rec = MA.Store.setBest(c.world.id, lv.cur, 'blitz', score);
         if (score >= 15) MA.Store.badge('blitz15');
-        MA.result(c, { title: 'ZEIT UM!', emoji: '⚡', record: rec && score > 0, win: rec && score > 0, lines: [`<b>${score}</b> Treffer in 60 Sekunden`, `${wrong} Fehler`, `Dein Rekord: <b>${MA.Store.rec(c.world.id, c.level).blitz}</b>`], xp: score * 6 });
+        MA.result(c, { title: 'ZEIT UM!', emoji: '⚡', record: rec && score > 0, win: rec && score > 0, lines: [`<b>${score}</b> Treffer in 60 Sekunden`, `${wrong} Fehler`, `Dein Rekord (${MA.LEVELS[lv.cur].s}): <b>${MA.Store.rec(c.world.id, lv.cur).blitz}</b>`], xp: score * 6 });
       };
       hud(); countdown(3);
       return { destroy() { alive = false; running = false; clearInterval(iv); if (w) w.destroy(); } };
@@ -244,8 +269,8 @@
      ======================================================= */
   G.boss = {
     start(c) {
-      const src = MA.taskSource(c.world, c.level);
-      const next = () => flat(src());
+      const lv = levelState(c);
+      const next = () => flat(lv.next());
       const boss = c.world.boss;
       const HP = c.world.id === 'final' ? 12 : 8, LIVES = 3;
       let hp = HP, lives = LIVES, w = null, alive = true, combo = 0;
@@ -253,11 +278,12 @@
       c.el.innerHTML = `<div class="bossfight"><div class="arena-top"><div class="boss-box"><div class="boss-name pixel">${boss.name.toUpperCase()}</div><div class="boss" aria-hidden="true">${boss.icon}</div><div class="hpbar"><div></div></div></div>
         <div class="player-box"><div class="lives"></div><div class="combo"></div></div></div><div class="stage"></div></div>`;
       const st = c.el.querySelector('.stage'), bossEl = c.el.querySelector('.boss'), hpEl = c.el.querySelector('.hpbar div');
+      c.refreshHud = () => draw();
       const draw = () => {
         hpEl.style.width = (hp / HP) * 100 + '%'; hpEl.classList.toggle('low', hp <= HP / 3);
         c.el.querySelector('.lives').innerHTML = '❤️'.repeat(lives) + '🖤'.repeat(LIVES - lives);
         c.el.querySelector('.combo').textContent = combo >= 2 ? `🔥 Combo x${combo}` : '';
-        c.hud(`<span>Boss-HP <b>${hp}/${HP}</b></span>`);
+        c.hud(`<span>Boss-HP <b>${hp}/${HP}</b></span>${lv.chips()}`);
       };
       const hit = (dmg) => {
         hp = Math.max(0, hp - dmg);
@@ -273,6 +299,7 @@
           worldId: c.world.id,
           onAnswer(r) {
             w.lock(); w.markChoice(r);
+            lv.report(r.ok, !r.ok);
             if (r.ok) {
               combo++; const dmg = combo >= 3 ? 2 : 1; MA.Sound.ok(); if (dmg === 2) { MA.toast('💥 KRITISCHER TREFFER!', 1200); MA.Sound.boost(); }
               hit(dmg);

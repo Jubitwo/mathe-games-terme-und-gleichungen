@@ -6,7 +6,7 @@
   const KEY = 'matheGamesTerme.v1';
 
   /* ---------- Speicher ---------- */
-  const def = () => ({ name: '', xp: 0, sound: true, best: {}, badges: [], stories: [], bosses: [], games: 0, level: 1 });
+  const def = () => ({ name: '', xp: 0, sound: true, best: {}, badges: [], stories: [], bosses: [], games: 0, level: 0, seenTpl: false });
   let data;
   try { data = Object.assign(def(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { data = def(); }
   const S = (MA.Store = {
@@ -115,8 +115,21 @@
   MA.h = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
   MA.esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   MA.starStr = (n, max = 3) => '★'.repeat(n) + '☆'.repeat(max - n);
-  MA.LEVELS = [null, { s: '★', n: 'G', name: 'Grundlegend' }, { s: '★★', n: 'M', name: 'Mittel' }, { s: '★★★', n: 'E', name: 'Erweitert' }];
+  MA.LEVELS = [{ s: '🤖', n: 'Auto', name: 'passt sich an', word: 'Auto' }, { s: '★', n: 'G', name: 'Grundlegend', word: 'leicht' }, { s: '★★', n: 'M', name: 'Mittel', word: 'mittel' }, { s: '★★★', n: 'E', name: 'Erweitert', word: 'schwer' }];
   MA.PRAISE = ['Stark!', 'Richtig!', 'Super!', 'Volltreffer!', 'Klasse!', 'Genau!', 'Mathe-Profi!', 'Weiter so!', 'Perfekt!'];
+
+  /* Nächste empfohlene Mission (Lern-Story → Training → Boss, Welt für Welt) */
+  MA.missionFor = (w) => {
+    const S = MA.Store;
+    if (w.story && !S.data.stories.includes(w.id)) return { w, mode: 'story', label: 'Lern-Story' };
+    if (Math.max(S.stars(w.id, 1), S.stars(w.id, 2), S.stars(w.id, 3)) < 2) return { w, mode: 'training', label: 'Training' };
+    if (!S.data.bosses.includes(w.id)) return { w, mode: 'boss', label: 'Boss-Kampf' };
+    return null;
+  };
+  MA.nextMission = () => {
+    for (const w of MA.WORLDS) { const m = MA.missionFor(w); if (m) return m; }
+    return MA.missionFor(MA.FINAL) || { w: MA.FINAL, mode: 'blitz', label: 'Blitz-Runde' };
+  };
 
   /* Aufgabe holen und Wiederholungen vermeiden */
   MA.taskSource = (topic, level, opts) => {

@@ -67,7 +67,7 @@
 
   /* ---------- Tastatur ---------- */
   const keypad = (kind, frac) => {
-    const keys = [['7'], ['8'], ['9'], ['del', '⌫'], ['4'], ['5'], ['6'], ['-', '±'], ['1'], ['2'], ['3'], kind === 'tpl' ? ['next', '▶'] : [',', ','], ['0'], kind === 'tpl' ? [',', ','] : frac ? ['/', '/'] : [',', ','], ['ok', 'OK']];
+    const keys = [['7'], ['8'], ['9'], ['del', '⌫'], ['4'], ['5'], ['6'], ['-', '+/−'], ['1'], ['2'], ['3'], kind === 'tpl' ? ['next', '▶'] : [',', ','], ['0'], kind === 'tpl' ? [',', ','] : frac ? ['/', '/'] : [',', ','], ['ok', 'OK']];
     const seen = new Set();
     return `<div class="keypad ${kind} ${kind === 'num' && !frac ? 'nofr' : ''}">${keys.filter(([k]) => (seen.has(k) ? false : seen.add(k))).map(([k, l]) => `<button type="button" class="key k-${k === '-' ? 'neg' : k === ',' ? 'com' : k === '/' ? 'fr' : k}" data-k="${k}" aria-label="${l || k}">${l || k}</button>`).join('')}</div>`;
   };
@@ -123,7 +123,9 @@
         editable.push(p.b);
         return `<button type="button" class="tbox" data-b="${p.b}" data-lead="${p.lead ? 1 : 0}" data-var="${isVarStart(t.tpl[i + 1]) ? 1 : 0}" aria-label="Lücke ${editable.length}"></button>`;
       }).join('');
-      ans.innerHTML = `<div class="tpl-line">${line}</div><div class="tpl-help">Tippe ein Kästchen an. <b>▶</b> springt zum nächsten. Vorzeichen mit <b>±</b>.</div>${keypad('tpl')}`;
+      ans.innerHTML = `<div class="tpl-line">${line}</div><div class="tpl-help">Gelbes Kästchen = hier tippst du. <b>▶</b> = nächstes Kästchen. Minus mit <b>+/−</b>. <button type="button" class="link-btn tpl-how">❓ So geht's</button></div>${keypad('tpl')}`;
+      ans.querySelector('.tpl-how').addEventListener('click', () => MA.showTplHelp());
+      if (!MA.Store.data.seenTpl && !o.noTutorial) setTimeout(() => MA.showTplHelp(), 250);
       let cur = editable[0];
       const boxes = () => ans.querySelectorAll('.tbox');
       const paint = () => boxes().forEach((b) => {
@@ -168,18 +170,20 @@
     let hintIdx = 0;
     const hb = root.querySelector('.task-hintbox');
     const wid = t.worldId || o.worldId;
-    if (o.hints && t.hints && t.hints.length && !o.display) {
+    const wObj = MA.WORLDS.find((x) => x.id === wid);
+    const allHints = (t.hints || []).concat(wObj && wObj.beispiel ? [`So sieht ein Beispiel aus: <b>${wObj.beispiel.split(' · ')[0]}</b>`] : []);
+    if (o.hints && allHints.length && !o.display) {
       hb.innerHTML = `<div class="hint-btns"><button type="button" class="btn-hint">💡 Tipp</button>${wid ? '<button type="button" class="btn-hint btn-learn">📒 Merke</button>' : ''}</div><div class="hints"></div>`;
       const btn = hb.querySelector('.btn-hint');
       btn.addEventListener('click', () => {
-        if (hintIdx >= t.hints.length) return;
-        hb.querySelector('.hints').insertAdjacentHTML('beforeend', `<div class="hint">💡 ${t.hints[hintIdx]}</div>`);
-        hintIdx++; o.onHint && o.onHint(hintIdx);
-        if (hintIdx >= t.hints.length) btn.disabled = true; else btn.textContent = '💡 Noch ein Tipp';
+        if (hintIdx >= allHints.length) return;
+        hb.querySelector('.hints').insertAdjacentHTML('beforeend', `<div class="hint">💡 ${allHints[hintIdx]}</div>`);
+        hintIdx++; o.onHint && o.onHint(Math.min(hintIdx, (t.hints || []).length));
+        if (hintIdx >= allHints.length) btn.disabled = true; else btn.textContent = hintIdx === allHints.length - 1 && wObj ? '🔍 Beispiel zeigen' : '💡 Noch ein Tipp';
       });
       const lb = hb.querySelector('.btn-learn');
       if (lb) lb.addEventListener('click', () => MA.showMerke(wid));
-      for (let i = 0; i < (o.showHints || 0); i++) btn.click();
+      for (let i = 0; i < Math.min(o.showHints || 0, (t.hints || []).length); i++) btn.click();
     }
     if (o.keyboard !== false && keyHandler) MA.keyTarget = keyHandler;
     /* Eingabe + Tastatur ins Bild holen (wichtig auf kleinen Handys) */
@@ -272,6 +276,27 @@
     if (o.auto) setTimeout(go, o.auto);
     setTimeout(() => box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30);
     return box;
+  };
+
+  /* ---------- Anleitung: Terme in Kästchen eingeben ---------- */
+  MA.showTplHelp = () => {
+    if (document.querySelector('.modal.tplhelp')) return;
+    const prev = MA.keyTarget;
+    const ov = document.createElement('div');
+    ov.className = 'modal tplhelp';
+    ov.innerHTML = `<div class="modal-box"><div class="owl-row"><div class="owl">🦉</div><div class="bubble"><b>So gibst du Terme ein</b></div></div>
+      <div class="howto">
+        <div class="how"><span class="hn">1</span><span>Das <b class="yl">gelbe Kästchen</b> ist aktiv. Tippe deine Zahl ein.</span></div>
+        <div class="how-demo"><span class="tbox cur">3</span><span class="tp">x</span><span class="tbox">+ 12</span></div>
+        <div class="how"><span class="hn">2</span><span>Mit <b>▶</b> springst du ins nächste Kästchen. Du kannst ein Kästchen auch direkt antippen.</span></div>
+        <div class="how"><span class="hn">3</span><span>Ist die Zahl negativ? Tippe <b>+/−</b>. Aus <b>+ 12</b> wird <b>− 12</b>.</span></div>
+        <div class="how"><span class="hn">4</span><span>Das Plus- oder Minuszeichen zeigt das Kästchen automatisch an. Du tippst nur die Zahl.</span></div>
+        <div class="how"><span class="hn">5</span><span>Alles ausgefüllt? <b class="gr">OK</b> drücken!</span></div>
+      </div><button type="button" class="btn btn-big modal-ok">Alles klar ▶</button></div>`;
+    document.body.appendChild(ov);
+    const close = () => { ov.remove(); MA.keyTarget = prev; MA.Store.data.seenTpl = true; MA.Store.save(); };
+    ov.querySelector('.modal-ok').addEventListener('click', close);
+    MA.keyTarget = (e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); close(); } };
   };
 
   /* ---------- Merke-Karte als Fenster ---------- */

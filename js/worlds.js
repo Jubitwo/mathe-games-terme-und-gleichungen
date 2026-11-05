@@ -46,17 +46,19 @@
   }
 
   /* Gleichungs-Schritte (lineare Gleichung A·x + B = C·x + D) */
+  const doX = (c) => (c > 0 ? `Ziehe auf beiden Seiten <b>${ax(c)}</b> ab` : `Addiere auf beiden Seiten <b>${ax(c)}</b>`);
+  const doN = (b) => (b > 0 ? `Ziehe auf beiden Seiten <b>${b}</b> ab` : `Addiere auf beiden Seiten <b>${-b}</b>`);
   function linSteps(A, Bc, C, D, x) {
     const st = [];
     const k = A - C;
     if (C !== 0) {
-      const t = { q: `<b>x-Glieder nach links:</b> Rechne auf beiden Seiten <b>${opx(C)}</b>. Welche Gleichung entsteht?`, board: `${lin(k, Bc)} = ${fmt(D)}`, why: `${lin(A, Bc)} ${opx(C)} = ${lin(k, Bc)} und ${lin(C, D)} ${opx(C)} = ${fmt(D)}` };
-      U.choice(t, `${lin(k, Bc)} = ${fmt(D)}`, [{ h: `${lin(A + C, Bc)} = ${fmt(D)}`, msg: `Auf beiden Seiten ${opx(C)} rechnen – nicht ${opx(-C)}!` }, { h: `${lin(k, Bc)} = ${lin(C, D)}`, msg: 'Was du links machst, musst du auch rechts machen!' }, `${lin(k, -Bc)} = ${fmt(D)}`]);
+      const t = { q: `<b>x-Glieder nach links:</b> ${doX(C)} (Rechenbefehl | ${opx(C)}). Welche Gleichung entsteht?`, board: `${lin(k, Bc)} = ${fmt(D)}`, why: `${lin(A, Bc)} ${opx(C)} = ${lin(k, Bc)} und ${lin(C, D)} ${opx(C)} = ${fmt(D)}` };
+      U.choice(t, `${lin(k, Bc)} = ${fmt(D)}`, [{ h: `${lin(A + C, Bc)} = ${fmt(D)}`, msg: `${C > 0 ? 'Abziehen' : 'Addieren'} – nicht umgekehrt! Rechenbefehl: | ${opx(C)}` }, { h: `${lin(k, Bc)} = ${lin(C, D)}`, msg: 'Was du links machst, musst du auch rechts machen!' }, `${lin(k, -Bc)} = ${fmt(D)}`]);
       st.push(t);
     }
     if (Bc !== 0) {
-      const t = { q: `<b>Zahlen nach rechts:</b> Rechne auf beiden Seiten <b>${opn(Bc)}</b>.`, board: `${lin(k, 0)} = ${fmt(D - Bc)}`, why: `${fmt(D)} ${opn(Bc)} = ${fmt(D - Bc)}` };
-      U.choice(t, `${lin(k, 0)} = ${fmt(D - Bc)}`, [{ h: `${lin(k, 0)} = ${fmt(D + Bc)}`, msg: `Die ${fmt(Bc)} muss weg – also ${opn(Bc)} auf beiden Seiten.` }, `${lin(k, 0)} = ${fmt(Bc - D)}`, `${lin(k, Bc)} = ${fmt(D - Bc)}`]);
+      const t = { q: `<b>Zahlen nach rechts:</b> ${doN(Bc)} (Rechenbefehl | ${opn(Bc)}). Welche Gleichung entsteht?`, board: `${lin(k, 0)} = ${fmt(D - Bc)}`, why: `${fmt(D)} ${opn(Bc)} = ${fmt(D - Bc)}` };
+      U.choice(t, `${lin(k, 0)} = ${fmt(D - Bc)}`, [{ h: `${lin(k, 0)} = ${fmt(D + Bc)}`, msg: `Die ${fmt(Bc)} muss weg – also auf beiden Seiten ${Bc > 0 ? 'abziehen' : 'addieren'} (| ${opn(Bc)}).` }, `${lin(k, 0)} = ${fmt(Bc - D)}`, `${lin(k, Bc)} = ${fmt(D - Bc)}`]);
       st.push(t);
     }
     st.push(num(k === 1 ? '<b>Fertig?</b> Lies ab: x = ?' : `<b>Teile beide Seiten durch ${par(k)}.</b> x = ?`, x, { board: `x = ${fmt(x)}`, why: `${fmt(D - Bc)} : ${par(k)} = ${fmt(x)}` }));
@@ -137,7 +139,7 @@
       }
       let g, m, n;
       do { g = ri(2, 5); m = ri(2, 6); n = rnz(-9, 9); } while (U.gcd(m, n) !== 1);
-      return tpl(`Klammere <b>${g}x</b> bzw. den größten gemeinsamen Faktor aus: ${E(pstr([0, g * n, g * m]))}`, [B(0, 1), 'x · (', B(1, 1), 'x ', B(2), ')'], [g, m, n], {
+      return tpl(`Klammere den größten gemeinsamen Faktor aus – er enthält auch x: ${E(pstr([0, g * n, g * m]))}`, [B(0, 1), 'x · (', B(1, 1), 'x ', B(2), ')'], [g, m, n], {
         hints: ['Beide Glieder enthalten x – das kommt mit vor die Klammer.', `Gemeinsamer Faktor: ${g}x`],
         sol: `${pstr([0, g * n, g * m])} = <b>${g}x · ${br(m, n)}</b>`,
         verify: (v) => (v[0] === g && v[1] === m && v[2] === n) || (v[0] === -g && v[1] === -m && v[2] === -n),
@@ -163,6 +165,7 @@
     beispiel: '(x + 3)(x + 5) = x² + 5x + 3x + 15 = x² + 8x + 15',
     fehler: '(x + 3)(x + 5) = x² + 15 ✘ – die gemischten Glieder 5x und 3x fehlen.',
     gen(l) {
+      const qt = (t) => (t[1] === 0 ? [T.quadNoB(), [t[2], t[0]]] : [T.quad(), t.slice().reverse()]);
       if (l === 1) {
         const a = ri(1, 9), b = ri(1, 9);
         const target = pm([a, 1], [b, 1]);
@@ -188,16 +191,18 @@
       if (l === 2) {
         const p = U.chance(0.5) ? 1 : ri(2, 3), a = rnz(-9, 9), b = rnz(-9, 9);
         const target = pm([a, p], [b, 1]);
-        return tpl(`Multipliziere aus und fasse zusammen: ${E(`${br(p, a)} · ${br(1, b)}`)}`, T.quad(), target.slice().reverse(), {
+        const [pa, an] = qt(target);
+        return tpl(`Multipliziere aus und fasse zusammen: ${E(`${br(p, a)} · ${br(1, b)}`)}`, pa, an, {
           hints: ['4 Produkte bilden, Vorzeichen mitnehmen!', `${coef(p)}·x, ${coef(p)}·${par(b)}, ${fmt(a)}·x, ${fmt(a)}·${par(b)}`],
           sol: `${coef(p, 'x²')} ${p * b < 0 ? '−' : '+'} ${ax(p * b)} ${a < 0 ? '−' : '+'} ${ax(a)} ${a * b < 0 ? '−' : '+'} ${Math.abs(a * b)} = <b>${pstr(target)}</b>`,
-          diagnose: (v) => (v[2] === -a * b ? 'Vorzeichen der Zahl: ' + fmt(a) + ' · ' + par(b) + ' = ' + fmt(a * b) : v[1] === 0 && target[1] !== 0 ? 'Gemischte Glieder vergessen?' : null),
+          diagnose: (v) => (target[1] === 0 ? (v[1] === -a * b ? 'Vorzeichen der Zahl: ' + fmt(a) + ' · ' + par(b) + ' = ' + fmt(a * b) : null) : v[2] === -a * b ? 'Vorzeichen der Zahl: ' + fmt(a) + ' · ' + par(b) + ' = ' + fmt(a * b) : v[1] === 0 ? 'Gemischte Glieder vergessen?' : null),
         });
       }
       if (U.chance(0.6)) {
         const p = ri(2, 4), q = ri(1, 3), a = rnz(-7, 7), b = rnz(-7, 7);
         const target = pm([a, p], [b, q]);
-        return tpl(`Multipliziere aus: ${E(`${br(p, a)} · ${br(q, b)}`)}`, T.quad(), target.slice().reverse(), {
+        const [pa, an] = qt(target);
+        return tpl(`Multipliziere aus: ${E(`${br(p, a)} · ${br(q, b)}`)}`, pa, an, {
           hints: ['Erst die x-Glieder: ' + p + 'x · ' + coef(q) + ' = ' + coef(p * q, 'x²'), 'Dann die beiden gemischten Glieder addieren.'],
           sol: `${coef(p * q, 'x²')} ${p * b < 0 ? '−' : '+'} ${ax(p * b)} ${a * q < 0 ? '−' : '+'} ${ax(a * q)} ${a * b < 0 ? '−' : '+'} ${Math.abs(a * b)} = <b>${pstr(target)}</b>`,
         });
@@ -387,7 +392,7 @@
     gen(l, stepMode) {
       let A, Bc, C, D, x, orig, wrongs, sq = null;
       if (l === 1) {
-        const k = ri(2, 6), m = rnz(-6, 6); x = rnz(-6, 9);
+        const k = ri(2, 6), m = rnz(-6, 6); x = ri(1, 9);
         if (U.chance(0.5)) {
           const n = k * (x + m);
           orig = `${k} · ${br(1, m)} = ${fmt(n)}`; A = k; Bc = k * m; C = 0; D = n;
@@ -438,8 +443,8 @@
       }
       if (A - C === 0 || (A * x + Bc) !== (C * x + D)) return this.gen(l, stepMode);
       const pre = sq
-        ? [eqChoice('<b>Schritt 1 – Klammern auflösen.</b> Welche Gleichung entsteht?', sq.full, sq.wrongs, null, 'Jedes Glied mit jedem multiplizieren bzw. binomische Formel anwenden.'),
-          eqChoice('<b>Schritt 2 – x² fällt weg:</b> Rechne auf beiden Seiten − x².', `${lin(A, Bc)} = ${lin(C, D)}`, [{ h: `${pstr([Bc, A, 2])} = ${lin(C, D)}`, msg: 'x² steht auf BEIDEN Seiten – es fällt also ganz weg.' }, `${lin(A, -Bc)} = ${lin(C, D)}`], null, 'x² − x² = 0')]
+        ? [eqChoice('<b>Schritt 1 – Klammern auflösen.</b> Welche Gleichung entsteht?', sq.full, sq.wrongs, null, 'Jedes Glied mit jedem multiplizieren – oder die binomische Formel anwenden.'),
+          eqChoice('<b>Schritt 2 – x² fällt weg:</b> Ziehe auf beiden Seiten x² ab (| − x²).', `${lin(A, Bc)} = ${lin(C, D)}`, [{ h: `${pstr([Bc, A, 2])} = ${lin(C, D)}`, msg: 'x² steht auf BEIDEN Seiten – es fällt also ganz weg.' }, `${lin(A, -Bc)} = ${lin(C, D)}`], null, 'x² − x² = 0')]
         : [eqChoice(`<b>Schritt 1 – Klammern auflösen.</b> Welche Gleichung entsteht?`, `${lin(A, Bc)} = ${lin(C, D)}`, wrongs, null, 'Jedes Glied in der Klammer wird multipliziert.')];
       const allSteps = [...pre, ...linSteps(A, Bc, C, D, x)];
       if (stepMode || (l === 1 && U.chance(0.4))) {
@@ -471,9 +476,10 @@
     gen(l, stepMode) {
       if (l === 1) {
         const a = ri(2, 9), k = ri(0, 2);
-        if (k === 0) { const x = a * rnz(-9, 9); const b = x / a; return mk(`${F('x', a)} = ${fmt(b)}`, x, a, `x = ${fmt(b)} · ${a}`, [{ h: `x = ${fmt(b)} : ${a}`, msg: 'Mal nehmen, nicht teilen – der Bruchstrich bedeutet „geteilt“, die Umkehrung ist „mal“.' }]); }
-        if (k === 1) { const x = a * ri(-6, 9), b = rnz(-9, 9), c = x / a + b; return mk(`${F('x', a)} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${fmt(c)}`, x, a, `x ${b < 0 ? '−' : '+'} ${Math.abs(a * b)} = ${fmt(a * c)}`, [{ h: `x ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${fmt(a * c)}`, msg: `Jedes Glied mal ${a} – auch die ${fmt(b)}!` }]); }
-        const b = rnz(-9, 9), c = rnz(-6, 9), x = a * c - b;
+        if (k === 0) { const x = a * ri(1, 9); const b = x / a; return mk(`${F('x', a)} = ${fmt(b)}`, x, a, `x = ${fmt(b)} · ${a}`, [{ h: `x = ${fmt(b)} : ${a}`, msg: 'Mal nehmen, nicht teilen – der Bruchstrich bedeutet „geteilt“, die Umkehrung ist „mal“.' }]); }
+        if (k === 1) { const x = a * ri(1, 9), b = rnz(-9, 9), c = x / a + b; return mk(`${F('x', a)} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${fmt(c)}`, x, a, `x ${b < 0 ? '−' : '+'} ${Math.abs(a * b)} = ${fmt(a * c)}`, [{ h: `x ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${fmt(a * c)}`, msg: `Jedes Glied mal ${a} – auch die ${fmt(b)}!` }]); }
+        const b = rnz(-9, 9), c = ri(1, 9), x = a * c - b;
+        if (x <= 0) return this.gen(l, stepMode);
         return mk(`${F(lin(1, b), a)} = ${fmt(c)}`, x, a, `${lin(1, b)} = ${fmt(a * c)}`, [{ h: `${lin(1, b)} = ${fmt(c)}`, msg: `Beide Seiten mal ${a}!` }]);
       }
       if (l === 2) {
@@ -510,7 +516,7 @@
         if (cross) steps.push(U.choice({ q: '<b>Schritt 1:</b> Multipliziere über Kreuz. Welche Gleichung entsteht?', board: after, why: 'Zähler links mal Nenner rechts = Zähler rechts mal Nenner links.' }, after, wrongAfter));
         else steps.push(U.choice({ q: `<b>Schritt 2:</b> Was entsteht, wenn du <b>jedes Glied</b> mit ${L} multiplizierst?`, board: after, why: 'Jedes Glied auf beiden Seiten wird multipliziert.' }, after, wrongAfter));
         steps.push(num('<b>Letzter Schritt:</b> Löse nach x auf. x = ?', x, { board: `x = ${fmt(x)}` }));
-        if (forbidden !== undefined && forbidden !== 0) steps.unshift(num(`<b>Erst prüfen:</b> Welche Zahl darf x hier <b>nicht</b> sein? (Nenner ≠ 0)`, forbidden, { board: `D = ℚ \\ {${fmt(forbidden)}}`, why: `Für x = ${fmt(forbidden)} wäre der Nenner ${lin(1, -forbidden)} = 0.` }));
+        if (forbidden !== undefined && forbidden !== 0) steps.unshift(num(`<b>Erst prüfen:</b> Welche Zahl darf x hier <b>nicht</b> sein? (Nenner ≠ 0)`, forbidden, { board: `x ≠ ${fmt(forbidden)}`, why: `Für x = ${fmt(forbidden)} wäre der Nenner ${lin(1, -forbidden)} = 0.` }));
         const hint = L ? `Hauptnenner: ${L}. Multipliziere jedes Glied damit.` : 'Über Kreuz multiplizieren.';
         if (stepMode || (l === 3 && forbidden) || (l === 1 && U.chance(0.35))) return { type: 'steps', q: `Löse: ${E(eq)}`, steps, hints: [hint], sol: `${after} → <b>x = ${fmt(x)}</b>` };
         return num(`Löse die Bruchgleichung: ${E(eq)} <span class="note">x = ?</span>`, x, { hints: [hint, `Danach: ${after}`], sol: `${eq}<br>→ ${after}<br>→ <b>x = ${fmt(x)}</b>` });
@@ -520,7 +526,7 @@
       { t: 'Willkommen in der Bruch-Wüste', b: `<p>Hier lauern Gleichungen mit <b>Brüchen</b> 🦂. Der Trick: Wir machen die Brüche einfach <b>weg</b>!</p><div class="bigex">${F('x', 4)} = 3 | · 4 → x = 12</div><p>Der Bruchstrich bedeutet „geteilt“. Das Gegenteil ist „mal“.</p>` },
       { t: 'Jedes Glied bekommt etwas ab!', b: `<div class="bigex">${F('x', 3)} + 2 = 5 | · 3</div><p>Wichtig: <b>Jedes Glied</b> wird mal 3 genommen:</p><div class="bigex">x + <span class="c3">6</span> = 15 → x = 9</div>`, check: { q: `${F('x', 2)} − 1 = 4 | · 2 ergibt …`, o: ['x − 2 = 8', 'x − 1 = 8', 'x − 2 = 4'], a: 0, why: 'Jedes Glied mal 2: x − 2 = 8.' } },
       { t: 'Mehrere Nenner? Hauptnenner!', b: `<div class="bigex">${F('x', 3)} + ${F('x', 4)} = 7</div><p>Der <b>Hauptnenner</b> ist die kleinste Zahl, in der 3 und 4 aufgehen: <b>12</b>.</p><div class="bigex">| · 12 → 4x + 3x = 84 → x = 12</div>`, check: { q: 'Hauptnenner von 4 und 6?', o: ['12', '24', '10'], a: 0, why: '12 ist das kleinste gemeinsame Vielfache.' } },
-      { t: 'x im Nenner – Vorsicht!', b: `<div class="bigex">${F(6, 'x − 2')} = 3</div><p>Durch 0 darf man nie teilen. Hier darf x <b>nicht 2</b> sein! Das schreibt man so: D = ℚ \\ {2}.</p><p>Bei zwei Brüchen hilft <b>über Kreuz multiplizieren</b>:</p><div class="bigex">${F(2, 'x')} = ${F(4, 10)} → 2 · 10 = 4 · x → x = 5</div>`, check: { q: `Welche Zahl darf x bei ${F(5, 'x + 3')} nicht sein?`, o: ['−3', '3', '5'], a: 0, why: 'x + 3 = 0 für x = −3.' } },
+      { t: 'x im Nenner – Vorsicht!', b: `<div class="bigex">${F(6, 'x − 2')} = 3</div><p>Durch 0 darf man nie teilen. Hier darf x <b>nicht 2</b> sein! Kurz geschrieben: <b>x ≠ 2</b> (lies: „x ist ungleich 2“).</p><p>Bei zwei Brüchen hilft <b>über Kreuz multiplizieren</b>:</p><div class="bigex">${F(2, 'x')} = ${F(4, 10)} → 2 · 10 = 4 · x → x = 5</div>`, check: { q: `Welche Zahl darf x bei ${F(5, 'x + 3')} nicht sein?`, o: ['−3', '3', '5'], a: 0, why: 'x + 3 = 0 für x = −3.' } },
     ],
   });
 

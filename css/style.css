@@ -100,17 +100,21 @@ body[data-screen='spiel'] .topbar { display: none; }
 .merke-panel[open] summary { margin-bottom: 0.6rem; }
 .merke-panel[open] .sum-hint { display: none; }
 .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.levels.four { grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
+.levels.four .lvl-stars { font-size: 1.1rem; }
+.lvl-info { margin-top: 0.5rem; font-size: 0.82rem; color: var(--muted); line-height: 1.35; }
 .lvl { display: flex; flex-direction: column; align-items: center; padding: 0.55rem 0.2rem; border-radius: 12px; border: 3px solid var(--line); background: rgba(255, 255, 255, 0.04); }
 .lvl-stars { font-size: 1.35rem; color: #6d679e; }
 .lvl-n { font-weight: 800; font-size: 0.85rem; }
 .lvl-got { font-size: 0.72rem; color: var(--muted); }
 .lvl.on { border-color: var(--yellow); background: rgba(255, 230, 0, 0.1); box-shadow: 0 0 14px rgba(255, 230, 0, 0.45); }
 .lvl.on .lvl-stars { color: var(--yellow); }
-.modes { display: grid; gap: 0.5rem; }
+.modes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+.mcard .m-tx { min-width: 0; display: grid; }
 .mcard { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.8rem; border-radius: 14px; border: 3px solid var(--line); background: rgba(255, 255, 255, 0.04); }
 .mcard:active { transform: scale(0.98); }
-.mcard.story { border-color: var(--yellow); background: rgba(255, 230, 0, 0.07); }
-.mcard.boss { border-color: var(--red); background: rgba(255, 56, 96, 0.08); }
+.mcard.mc-story { border-color: var(--yellow); background: rgba(255, 230, 0, 0.07); }
+.mcard.mc-boss { border-color: var(--red); background: rgba(255, 56, 96, 0.08); }
 .m-ic { font-size: 1.9rem; flex: none; width: 2.4rem; text-align: center; }
 .m-tx { display: flex; flex-direction: column; }
 .m-tx small { color: var(--muted); font-size: 0.82rem; }
@@ -334,3 +338,29 @@ body[data-screen='spiel'] .topbar { display: none; }
   .fb-try .fb-head { font-size: 1rem; }
   .tpl-help { display: none; }
 }
+
+/* ===== v2: Einstieg, Missionen, Niveau im Spiel ===== */
+.mission { --c: var(--yellow); width: 100%; display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.75rem 0.8rem; margin: 0 0 0.8rem; border-radius: var(--r); border: 3px solid var(--c); background: linear-gradient(135deg, color-mix(in srgb, var(--c) 22%, transparent), rgba(255, 255, 255, 0.03)); box-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); color: inherit; animation: mi-pulse 2.2s ease-in-out infinite; }
+.mission .mi-ic { font-size: 2rem; line-height: 1; }
+.mission .mi-tx { display: grid; gap: 0.1rem; flex: 1; min-width: 0; }
+.mission .mi-h { font-size: 0.62rem; color: var(--c); letter-spacing: 0.06em; }
+.mission .mi-tx b { font-size: 1rem; }
+.mission .mi-tx span:last-child { font-size: 0.8rem; color: var(--muted); }
+.mission .mi-go { font-size: 1.3rem; color: var(--c); }
+.mission.small { animation: none; padding: 0.6rem 0.7rem; }
+.mission.small .mi-ic { font-size: 1.6rem; }
+@keyframes mi-pulse { 50% { box-shadow: 0 0 30px color-mix(in srgb, var(--c) 70%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .mission { animation: none; } }
+
+.lvsw { display: inline-flex; align-items: center; gap: 0.2rem; margin-left: auto; }
+.lvchip { min-width: 2.6rem; height: 2.1rem; padding: 0 0.3rem; border-radius: 9px; border: 2px solid var(--line); background: rgba(255, 255, 255, 0.04); color: #6d679e; font-size: 0.78rem; letter-spacing: -0.05em; }
+.lvchip.on { border-color: var(--yellow); color: var(--yellow); background: rgba(255, 230, 0, 0.12); box-shadow: 0 0 10px rgba(255, 230, 0, 0.4); }
+.autotag { font-size: 0.68rem; color: var(--muted); padding: 0 0.2rem; }
+
+.howto { display: grid; gap: 0.45rem; }
+.how { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.92rem; line-height: 1.35; }
+.hn { flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; display: grid; place-items: center; background: var(--yellow); color: #120f2b; font-weight: 800; font-size: 0.8rem; }
+.how-demo { display: flex; align-items: center; justify-content: center; gap: 0.3rem; padding: 0.4rem; font-size: 1.2rem; }
+.how-demo .tp { font-weight: 700; }
+.yl { color: var(--yellow); }
+.gr { color: var(--green); }
