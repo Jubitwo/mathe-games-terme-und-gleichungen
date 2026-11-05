@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mathe Games: Terme &amp; Gleichungen</title>
+  <meta name="description" content="Selbstlern-Spiel für Klasse 8: Ausmultiplizieren, binomische Formeln, Faktorisieren, Gleichungen mit Klammern, Bruchgleichungen und Formeln – handyoptimiert.">
+  <meta name="theme-color" content="#07061a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Terme &amp; Gleichungen">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-screen="start">
+  <div class="bg-grid" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#/karte" aria-label="Zur Weltkarte"><span class="pixel b1">MATHE</span><span class="pixel b2">GAMES</span></a>
+    <nav class="top-nav">
+      <a href="#/spick" class="top-btn" title="Spickzettel">📒</a>
+      <a href="#/erfolge" class="top-btn" title="Erfolge">🏆 <span class="top-xp pixel"></span></a>
+      <button type="button" id="btn-sound" class="top-btn" title="Ton an/aus">🔊</button>
+    </nav>
+  </header>
+  <main id="app" aria-live="polite"></main>
+  <noscript><p style="padding:2rem;color:#fff">Bitte JavaScript aktivieren.</p></noscript>
+  <script src="js/util.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/worlds.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/games.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "Mathe Games: Terme & Gleichungen",
+  "short_name": "Terme & Gl.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07061a",
+  "theme_color": "#07061a",
+  "lang": "de",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
